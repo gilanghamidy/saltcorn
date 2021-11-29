@@ -125,6 +125,34 @@ const email_form = async (req) => {
 };
 
 /**
+ * Storage settings form definition
+ * @param {object} req request
+ * @returns {Promise<Form>} form
+ */
+ const storage_form = async (req) => {
+  const form = await config_fields_form({
+    req,
+    field_names: [
+      "storage_s3_enabled",
+      "storage_s3_bucket",
+      "storage_s3_path_prefix",
+      "storage_s3_endpoint",
+      "storage_s3_region",
+      "storage_s3_access_key",
+      "storage_s3_access_secret",
+      "storage_s3_secure",
+    ],
+    action: "/admin/storage",
+  });
+  form.submitButtonClass = "btn-outline-primary";
+  form.submitLabel = req.__("Save");
+  form.onChange =
+    "remove_outline(this);$('#testemail').attr('href','#').removeClass('btn-primary').addClass('btn-outline-primary')";
+  return form;
+};
+
+
+/**
  * @name get
  * @function
  * @memberof module:routes/admin~routes/adminRouter
@@ -217,6 +245,40 @@ router.get(
 );
 
 /**
+ * @name get/storage
+ * @function
+ * @memberof module:routes/admin~routes/adminRouter
+ */
+ router.get(
+  "/storage",
+  setTenant,
+  isAdmin,
+  error_catcher(async (req, res) => {
+    const form = await storage_form(req);
+    send_admin_page({
+      res,
+      req,
+      active_sub: "Storage",
+      contents: {
+        type: "card",
+        title: req.__("Storage settings"),
+        contents: [
+          renderForm(form, req.csrfToken()),
+          a(
+            {
+              id: "testemail",
+              href: "/admin/send-test-email",
+              class: "btn btn-primary",
+            },
+            req.__("Send test email")
+          ),
+        ],
+      },
+    });
+  })
+);
+
+/**
  * @name get/send-test-email
  * @function
  * @memberof module:routes/admin~routes/adminRouter
@@ -277,6 +339,38 @@ router.post(
     }
   })
 );
+
+/**
+ * @name post/email
+ * @function
+ * @memberof module:routes/admin~routes/adminRouter
+ */
+ router.post(
+  "/storage",
+  setTenant,
+  isAdmin,
+  error_catcher(async (req, res) => {
+    const form = await storage_form(req);
+    form.validate(req.body);
+    if (form.hasErrors) {
+      send_admin_page({
+        res,
+        req,
+        active_sub: "Storage",
+        contents: {
+          type: "card",
+          title: req.__("Storage settings"),
+          contents: [renderForm(form, req.csrfToken())],
+        },
+      });
+    } else {
+      await save_config_from_form(form);
+      req.flash("success", req.__("Storage settings updated"));
+      res.redirect("/admin/storage");
+    }
+  })
+);
+
 
 /**
  * @name get/backup

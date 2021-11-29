@@ -538,6 +538,7 @@ const runPost = async (
       row = form.values;
     }
     const file_fields = form.fields.filter((f) => f.type === "File");
+
     for (const field of file_fields) {
       if (req.files && req.files[field.name]) {
         const file = await File.from_req_files(
